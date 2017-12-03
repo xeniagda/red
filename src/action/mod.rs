@@ -8,6 +8,8 @@ use lazysort::{Sorted, SortedBy};
 use red_file::RedFile;
 use range::Range;
 
+static SEL_CHARS: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}";
+
 #[derive(Debug, Clone)]
 pub enum Action {
     Delete,  // Deletes a line
@@ -16,7 +18,7 @@ pub enum Action {
     Append,  // Append text at the end of a line
 
     CopyTo(Range),   // Move a range from one place to another
-    
+
     Print,   // Print a range with line number
     Print_,   // Print a line
 
@@ -25,7 +27,7 @@ pub enum Action {
 }
 
 impl Action {
-    pub fn apply(self, mut file: &mut RedFile) {
+    pub fn apply(self, file: &mut RedFile) {
         match self {
             Action::Delete => {
                 file.lines = file.clone().lines.into_iter()
@@ -51,7 +53,7 @@ impl Action {
             Action::Append => {
                 loop {
                     let mut to_insert = "".to_string();
-                    print!("> ");
+                    print!("a> ");
                     stdout().flush().unwrap();
                     stdin().read_line(&mut to_insert).unwrap();
                     to_insert = to_insert.trim().to_string();
@@ -64,8 +66,37 @@ impl Action {
                 }
             }
             Action::Change => {
-                Action::Delete.apply(&mut file);
-                Action::Insert.apply(&mut file);
+                for line in file.cursor.lines.clone().into_iter().sorted() {
+                    let content = file.lines[line].clone();
+                    let mut sel_chars = SEL_CHARS.to_string();
+                    sel_chars.truncate(content.len());
+
+                    println!("  {}", content);
+                    println!("  {}", sel_chars);
+
+                    let mut targets;
+                    while {
+                        targets = "".to_string();
+                        print!("T> ");
+                        stdout().flush().unwrap();
+                        stdin().read_line(&mut targets).unwrap();
+                        targets = targets.trim().to_string();
+                        targets.len() != 2
+                    } {}
+                    let start = sel_chars.find(targets.chars().nth(0).unwrap()).unwrap();
+                    let end = sel_chars.find(targets.chars().nth(1).unwrap()).unwrap() + 1;
+
+                    let mut text = "".to_string();
+                    print!("c> ");
+                    stdout().flush().unwrap();
+                    stdin().read_line(&mut text).unwrap();
+                    text = text.trim_right_matches("\n").to_string();
+
+                    let line_before = file.lines[line].clone();
+                    file.lines[line] = line_before[..start].to_string();
+                    file.lines[line].push_str(&text);
+                    file.lines[line].push_str(&line_before[end..]);
+                }
             }
             Action::CopyTo(to) => {
                 let lines_to_yank: Vec<String> = file.cursor.lines.clone().into_iter().sorted().map(|l| file.lines[l].clone()).collect();
@@ -97,6 +128,7 @@ impl Action {
 
                 file.lines = content.lines().map(|x| x.to_string()).collect();
                 file.cursor = Range::empty();
+                println!("Editing {} [{}]", path.trim(), file.lines.len());
             }
             Action::Print => {
                 let mut next = None;
