@@ -3,6 +3,8 @@ use nom::IResult;
 use red_file::RedFile;
 use action::Action;
 
+use range::parse::parse_range;
+
 
 pub fn parse_action<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Action> {
     alt!(
@@ -14,8 +16,19 @@ pub fn parse_action<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Action>
         flat_map!(tag!("a"), value!(Action::Append)) |
         flat_map!(tag!("p"), value!(Action::Print)) |
         flat_map!(tag!("P"), value!(Action::Print_)) |
+        apply!(copy_to, ctx) |
         apply!(write, ctx) |
         apply!(read, ctx)
+        )
+}
+
+pub fn copy_to<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Action> {
+    do_parse!(
+        inp,
+
+        ws!(tag!("t")) >>
+        to: apply!(parse_range, ctx) >>
+        (Action::CopyTo(to))
         )
 }
 
@@ -25,9 +38,7 @@ pub fn write<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Action> {
 
         ws!(tag!("w")) >>
         name: is_not_s!("") >>
-        ({ 
-            Action::Write(name.to_string())
-        })
+        (Action::Write(name.to_string()))
         )
 }
 
@@ -37,8 +48,6 @@ pub fn read<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Action> {
 
         ws!(tag!("e")) >>
         name: is_not_s!("") >>
-        ({ 
-            Action::Edit(name.to_string())
-        })
+        (Action::Edit(name.to_string()))
         )
 }

@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use nom::{IResult, digit, ErrorKind};
+use nom::{IResult, digit};
 
 use regex::Regex;
 use red_file::RedFile;
@@ -61,6 +61,7 @@ fn line<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, usize> {
     alt!(
         inp,
 
+        apply!(relative, ctx) |
         parse_usize |
         do_parse!(
             tag!("$") >>
@@ -69,21 +70,18 @@ fn line<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, usize> {
         )
 }
 
-// fn relative<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, usize> {
-//     if ctx.cursor.lines.is_empty() {
-//         IResult::Error(error_position!(ErrorKind::Custom(0), inp))
-//     } else {
-//         do_parse!(
-//             inp,
+fn relative<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, usize> {
+    do_parse!(
+        inp,
 
-//             tag_s!(".") >>
-//             rel: alt!(parse_isize | value!(0)) >>
-//             ({
-//                 ctx.cursor.lines.get(&0).unwrap() + (rel as usize)
-//             })
-//             )
-//     }
-// }
+        range: parse_usize >>
+        tag!("^") >>
+        num: parse_isize >>
+        ({
+            range.wrapping_add(num as usize)
+        })
+        )
+}
 
 
 fn range<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {

@@ -2,7 +2,9 @@ pub mod parse;
 
 use std::io::{stdin, stdout, Write, Read};
 use std::fs::File;
+use termion::{color, style};
 use lazysort::{Sorted, SortedBy};
+
 use red_file::RedFile;
 use range::Range;
 
@@ -12,6 +14,8 @@ pub enum Action {
     Insert,  // Inserts text before a line
     Change,  // Change the content of a line
     Append,  // Append text at the end of a line
+
+    CopyTo(Range),   // Move a range from one place to another
     
     Print,   // Print a range with line number
     Print_,   // Print a line
@@ -21,7 +25,7 @@ pub enum Action {
 }
 
 impl Action {
-    pub fn apply(self, file: &mut RedFile) {
+    pub fn apply(self, mut file: &mut RedFile) {
         match self {
             Action::Delete => {
                 file.lines = file.clone().lines.into_iter()
@@ -59,6 +63,22 @@ impl Action {
                     }
                 }
             }
+            Action::Change => {
+                Action::Delete.apply(&mut file);
+                Action::Insert.apply(&mut file);
+            }
+            Action::CopyTo(to) => {
+                let lines_to_yank: Vec<String> = file.cursor.lines.clone().into_iter().sorted().map(|l| file.lines[l].clone()).collect();
+                let res_lines: Vec<usize> = to.lines.into_iter().sorted().collect();
+                let mut last_line: Option<usize> = None;
+                for (i, line) in lines_to_yank.into_iter().enumerate() {
+                    println!("Line {}: {} (res: {:?})", i, line, res_lines);
+                    let res_pos = res_lines.get(i).map(|x| *x).unwrap_or_else(|| last_line.unwrap() + 1);
+                    println!("Res pos: {}", res_pos);
+                    file.insert_line(res_pos, line);
+                    last_line = Some(res_pos);
+                }
+            }
             Action::Write(path) => {
                 let mut out = File::create(path.trim()).unwrap();
                 let mut first = true;
@@ -80,11 +100,16 @@ impl Action {
             }
             Action::Print => {
                 let mut next = None;
+                let leading_digits = file.cursor.lines.clone().into_iter()
+                        .map(|x| ((x + 1) as f32).log10().floor() as usize)
+                        .max()
+                        .unwrap_or(0) + 1;
+
                 for line in file.cursor.lines.clone().into_iter().sorted() {
                     if next.is_some() && Some(line) != next {
                         println!("    ...");
                     }
-                    println!("{}\t{}", line, file.lines[line]);
+                    println!("{4}{1:0$}{2} {3}", leading_digits, line, style::Reset, file.lines[line], color::Fg(color::Cyan));
                     next = Some(line + 1);
                 }
             }
@@ -93,7 +118,6 @@ impl Action {
                     println!("{}", file.lines[*line]);
                 }
             }
-            _ => { }
         }
 
     }

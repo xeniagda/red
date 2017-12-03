@@ -2,32 +2,41 @@
 extern crate nom;
 extern crate regex;
 extern crate lazysort;
+extern crate termion;
 
 mod range;
 mod red_file;
 mod action;
+
+use std::env::args;
 
 use nom::IResult;
 
 use range::Range;
 use range::parse::parse_range;
 use action::parse::parse_action;
+use action::Action;
 use red_file::RedFile;
 
 fn main() {
-    let mut file = 
-            RedFile { lines: vec![
-                "hello".to_string(),
-                "world".to_string(),
-                "jonathan".to_string(),
-                "lööv".to_string()
-            ], cursor: Range::empty() };
+    let mut file = RedFile { lines: vec![], cursor: Range::empty() };
+    for arg in args().skip(1) {
+        Action::Edit(arg).apply(&mut file);
+    }
+
+    let mut last_line = "".to_string();
+
     loop {
         let mut line = "".to_string();
         std::io::stdin().read_line(&mut line).unwrap();
         if line == line.trim() {
             break;
         }
+
+        if line.trim() == "!" {
+            line = last_line.clone();
+        }
+        last_line = line.clone();
 
         let lineclone = line.clone();
         let range = parse_range(
