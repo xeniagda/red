@@ -6,19 +6,23 @@ use red_file::RedFile;
 use range::Range;
 
 pub fn parse_range<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
-    do_parse!(
+    alt!(
         inp,
 
-        ranges: separated_list!(tag!("+"), alt!(apply!(offset, ctx) | apply!(parse_one_range, ctx))) >>
-        ({
-            let mut combined_ranges = HashSet::new();
-            for range in ranges {
-                for line in range.lines {
-                    combined_ranges.insert(line);
+        do_parse!(
+            ranges: separated_nonempty_list!(tag!("+"), alt!(apply!(offset, ctx) | apply!(expand, ctx) | apply!(parse_one_range, ctx))) >>
+            ({
+                let mut combined_ranges = HashSet::new();
+                for range in ranges {
+                    for line in range.lines {
+                        combined_ranges.insert(line);
+                    }
                 }
-            }
-            Range {lines: combined_ranges }
-        })
+                Range {lines: combined_ranges }
+            })
+            ) |
+        value!(ctx.cursor.clone())
+
         )
 }
 
@@ -53,6 +57,33 @@ fn offset<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
         num: parse_isize >>
         ({
             range.offset(num)
+        })
+        )
+}
+
+fn expand<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
+    do_parse!(
+        inp,
+
+        range: apply!(parse_one_range, ctx) >>
+        tag!("#") >>
+        num: parse_isize >>
+        ({
+            let mut res = HashSet::new();
+            if num < 0 {
+                for i in 0..-num + 1 {
+                    for x in range.lines.clone() {
+                        res.insert(x.saturating_sub(i as usize));
+                    }
+                }
+            } else {
+                for i in 0..num + 1 {
+                    for x in range.lines.clone() {
+                        res.insert(x.wrapping_add(i as usize));
+                    }
+                }
+            }
+            Range { lines: res }
         })
         )
 }
