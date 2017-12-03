@@ -1,0 +1,9 @@
+[package]
+name = "red"
+version = "0.1.0"
+authors = ["loovjo <jonathan.loov@gmail.com>"]
+
+[dependencies]
+nom = "3.2"
+regex = "0.2"
+lazysort = "0.2.0"
