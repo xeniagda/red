@@ -1,12 +1,12 @@
 use range::Range;
 
 #[derive(Debug, Clone)]
-pub struct RedFile {
+pub struct RedBuffer {
     pub lines: Vec<String>,
     pub cursor: Range,
 }
 
-impl RedFile {
+impl RedBuffer {
     pub fn insert_line(&mut self, at: usize, line: String) {
         self.lines.insert(at, line);
         self.cursor = Range {

@@ -4,8 +4,9 @@ use std::io::{stdin, stdout, Write, Read};
 use std::fs::File;
 use termion::{color, style};
 use lazysort::{Sorted, SortedBy};
+use regex::Regex;
 
-use red_file::RedFile;
+use red_buffer::RedBuffer;
 use range::Range;
 
 static SEL_CHARS: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}";
@@ -18,6 +19,7 @@ pub enum Action {
     Append,  // Append text at the end of a line
 
     CopyTo(Range),   // Move a range from one place to another
+    Substitute(String, String), // Substitute a by b
 
     Print,   // Print a range with line number
     Print_,   // Print a line
@@ -27,7 +29,7 @@ pub enum Action {
 }
 
 impl Action {
-    pub fn apply(self, file: &mut RedFile) {
+    pub fn apply(self, file: &mut RedBuffer) {
         match self {
             Action::Delete => {
                 file.lines = file.clone().lines.into_iter()
@@ -69,10 +71,10 @@ impl Action {
                 for line in file.cursor.lines.clone().into_iter().sorted() {
                     let content = file.lines[line].clone();
                     let mut sel_chars = SEL_CHARS.to_string();
-                    sel_chars.truncate(content.len());
+                    sel_chars.truncate(content.len() + 1);
 
                     println!("  {}", content);
-                    println!("  {}", sel_chars);
+                    println!("{}  {}{}", color::Fg(color::Cyan), sel_chars, style::Reset);
 
                     let mut targets;
                     while {
@@ -81,6 +83,9 @@ impl Action {
                         stdout().flush().unwrap();
                         stdin().read_line(&mut targets).unwrap();
                         targets = targets.trim().to_string();
+                        if targets.len() == 0 {
+                            return;
+                        }
                         targets.len() != 2
                     } {}
                     let start = sel_chars.find(targets.chars().nth(0).unwrap()).unwrap();
@@ -95,7 +100,9 @@ impl Action {
                     let line_before = file.lines[line].clone();
                     file.lines[line] = line_before[..start].to_string();
                     file.lines[line].push_str(&text);
-                    file.lines[line].push_str(&line_before[end..]);
+                    if end < content.len() {
+                        file.lines[line].push_str(&line_before[end..]);
+                    }
                 }
             }
             Action::CopyTo(to) => {
@@ -103,11 +110,18 @@ impl Action {
                 let res_lines: Vec<usize> = to.lines.into_iter().sorted().collect();
                 let mut last_line: Option<usize> = None;
                 for (i, line) in lines_to_yank.into_iter().enumerate() {
-                    println!("Line {}: {} (res: {:?})", i, line, res_lines);
                     let res_pos = res_lines.get(i).map(|x| *x).unwrap_or_else(|| last_line.unwrap() + 1);
-                    println!("Res pos: {}", res_pos);
                     file.insert_line(res_pos, line);
                     last_line = Some(res_pos);
+                }
+            }
+            Action::Substitute(pat, rep) => {
+                let replacer: &str = &rep;
+                let rpat = Regex::new(&pat).unwrap();
+                for i in file.cursor.lines.iter() {
+                    let line = file.lines[*i].clone();
+                    let replaced = rpat.replace_all(&line, replacer).into_owned();
+                    file.lines[*i] = replaced;
                 }
             }
             Action::Write(path) => {
@@ -122,7 +136,7 @@ impl Action {
                 }
             }
             Action::Edit(path) => {
-                let mut f = File::open(path.trim()).unwrap();
+                let mut f = File::open(path.trim()).unwrap_or_else(|_| File::create(path.trim()).unwrap());
                 let mut content = String::new();
                 f.read_to_string(&mut content).unwrap();
 
@@ -139,7 +153,7 @@ impl Action {
 
                 for line in file.cursor.lines.clone().into_iter().sorted() {
                     if next.is_some() && Some(line) != next {
-                        println!("    ...");
+                        println!("{}    ...", color::Fg(color::Green));
                     }
                     println!("{4}{1:0$}{2} {3}", leading_digits, line, style::Reset, file.lines[line], color::Fg(color::Cyan));
                     next = Some(line + 1);

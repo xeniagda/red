@@ -5,7 +5,7 @@ extern crate lazysort;
 extern crate termion;
 
 mod range;
-mod red_file;
+mod red_buffer;
 mod action;
 
 use std::env::args;
@@ -16,10 +16,10 @@ use range::Range;
 use range::parse::parse_range;
 use action::parse::parse_action;
 use action::Action;
-use red_file::RedFile;
+use red_buffer::RedBuffer;
 
 fn main() {
-    let mut file = RedFile { lines: vec![], cursor: Range::empty() };
+    let mut file = RedBuffer { lines: vec![], cursor: Range::empty() };
     for arg in args().skip(1) {
         Action::Edit(arg).apply(&mut file);
     }
@@ -32,6 +32,7 @@ fn main() {
         if line == line.trim() {
             break;
         }
+        line = line.trim_right_matches("\n").to_string();
 
         if line.trim() == "!" {
             line = last_line.clone();

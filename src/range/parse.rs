@@ -2,10 +2,10 @@ use std::collections::HashSet;
 use nom::{IResult, digit};
 
 use regex::Regex;
-use red_file::RedFile;
+use red_buffer::RedBuffer;
 use range::Range;
 
-pub fn parse_range<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
+pub fn parse_range<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
     alt!(
         inp,
 
@@ -26,7 +26,7 @@ pub fn parse_range<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
         )
 }
 
-fn parse_one_range<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
+fn parse_one_range<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
     alt!(
         inp,
 
@@ -37,7 +37,7 @@ fn parse_one_range<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
         )
 }
 
-fn line_range<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
+fn line_range<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
     do_parse!(
         inp,
 
@@ -48,7 +48,7 @@ fn line_range<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
         )
 }
 
-fn offset<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
+fn offset<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
     do_parse!(
         inp,
 
@@ -61,7 +61,7 @@ fn offset<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
         )
 }
 
-fn expand<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
+fn expand<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
     do_parse!(
         inp,
 
@@ -88,7 +88,7 @@ fn expand<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
         )
 }
 
-fn line<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, usize> {
+fn line<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, usize> {
     alt!(
         inp,
 
@@ -101,7 +101,7 @@ fn line<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, usize> {
         )
 }
 
-fn relative<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, usize> {
+fn relative<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, usize> {
     do_parse!(
         inp,
 
@@ -115,7 +115,7 @@ fn relative<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, usize> {
 }
 
 
-fn range<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
+fn range<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
     alt!(
         inp,
         do_parse!(
@@ -135,7 +135,7 @@ fn range<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
         )
 }
 
-fn special<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
+fn special<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
     alt!(
         inp,
 
@@ -165,7 +165,7 @@ named!(parse_isize<&str, isize>,
        );
 
 
-fn search<'a>(inp: &'a str, ctx: &RedFile) -> IResult<&'a str, Range> {
+fn search<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
     do_parse!(
         inp,
 
