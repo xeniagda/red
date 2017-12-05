@@ -28,14 +28,15 @@ pub enum Action {
     Print_,   // Print a line
 
     Write(String),
-    Edit(String)
+    Edit(bool, String)
 }
 
 #[derive(Debug)]
 pub enum ActionErr {
     OutOfBounds,
     IO,
-    Regex
+    Regex,
+    Other,
 }
 
 impl Action {
@@ -113,6 +114,7 @@ impl Action {
                     if end < content.len() {
                         file.lines[line].push_str(&line_before[end..]);
                     }
+                    file.saved = false;
                 }
             }
             Action::CopyTo(to) => {
@@ -149,8 +151,13 @@ impl Action {
                     out.write(line.bytes().collect::<Vec<u8>>().as_slice())?;
                 }
                 file.filename = Some(path);
+                file.saved = true;
             }
-            Action::Edit(path) => {
+            Action::Edit(force, path) => {
+                if !file.saved && !force {
+                    eprintln!("Not saved!");
+                    return Err(ActionErr::Other);
+                }
                 let mut f = File::open(path.trim());
                 if f.is_ok() {
                     let mut f = f.unwrap();
@@ -165,6 +172,7 @@ impl Action {
                     file.cursor = Range::empty();
                     println!("Editing {} [NEW]", path.trim());
                 }
+                file.saved = true;
                 file.filename = Some(path.trim().to_string());
             }
             Action::Print => {

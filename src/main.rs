@@ -22,9 +22,9 @@ use action::ActionErr;
 use red_buffer::RedBuffer;
 
 fn main() {
-    let mut file = RedBuffer { lines: vec![], cursor: Range::empty(), filename: None };
+    let mut file = RedBuffer::empty();
     for arg in args().skip(1) {
-        if let Err(ActionErr::IO) = Action::Edit(arg).apply(&mut file) {
+        if let Err(ActionErr::IO) = Action::Edit(true, arg).apply(&mut file) {
             eprintln!("Couldn't read file!");
         }
     }

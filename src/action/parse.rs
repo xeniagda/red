@@ -56,11 +56,19 @@ pub fn write<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Action> {
 }
 
 pub fn read<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Action> {
-    do_parse!(
+    alt!(
         inp,
 
-        ws!(tag!("e")) >>
-        name: is_not_s!("") >>
-        (Action::Edit(name.to_string()))
+
+        do_parse!(
+            ws!(tag!("e!")) >>
+            name: is_not_s!("") >>
+            (Action::Edit(true, name.to_string()))
+            ) |
+        do_parse!(
+            ws!(tag!("e")) >>
+            name: is_not_s!("") >>
+            (Action::Edit(false, name.to_string()))
+            )
         )
 }

@@ -6,7 +6,8 @@ use action::ActionErr;
 pub struct RedBuffer {
     pub lines: Vec<String>,
     pub cursor: Range,
-    pub filename: Option<String>
+    pub filename: Option<String>,
+    pub saved: bool
 }
 
 impl RedBuffer {
@@ -20,6 +21,10 @@ impl RedBuffer {
                 .map(|l| if l >= at { l + 1 } else { l })
                 .collect()
         };
+        self.saved = false;
         Ok(())
+    }
+    pub fn empty() -> RedBuffer {
+        RedBuffer { lines: vec![], cursor: Range::empty(), filename: None, saved: true }
     }
 }
