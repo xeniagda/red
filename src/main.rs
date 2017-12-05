@@ -1,3 +1,5 @@
+#![feature(try_trait)]
+
 #[macro_use]
 extern crate nom;
 extern crate regex;
@@ -16,12 +18,15 @@ use range::Range;
 use range::parse::parse_range;
 use action::parse::parse_action;
 use action::Action;
+use action::ActionErr;
 use red_buffer::RedBuffer;
 
 fn main() {
-    let mut file = RedBuffer { lines: vec![], cursor: Range::empty() };
+    let mut file = RedBuffer { lines: vec![], cursor: Range::empty(), filename: None };
     for arg in args().skip(1) {
-        Action::Edit(arg).apply(&mut file);
+        if let Err(ActionErr::IO) = Action::Edit(arg).apply(&mut file) {
+            eprintln!("Couldn't read file!");
+        }
     }
 
     let mut last_line = "".to_string();
@@ -65,7 +70,9 @@ fn main() {
             let action = parse_action(&lineclone, &file);
             match action {
                 IResult::Done(rest, action) => {
-                    action.apply(&mut file);
+                    if let Err(x) = action.apply(&mut file) {
+                        eprintln!("Err: {:?}", x);
+                    }
                     line = rest.to_string();
                 }
                 IResult::Error(e) => {

@@ -1,10 +1,13 @@
 pub mod parse;
 
 use std::io::{stdin, stdout, Write, Read};
+use std::io;
+use std::option;
 use std::fs::File;
 use termion::{color, style};
 use lazysort::{Sorted, SortedBy};
 use regex::Regex;
+use regex;
 
 use red_buffer::RedBuffer;
 use range::Range;
@@ -28,8 +31,15 @@ pub enum Action {
     Edit(String)
 }
 
+#[derive(Debug)]
+pub enum ActionErr {
+    OutOfBounds,
+    IO,
+    Regex
+}
+
 impl Action {
-    pub fn apply(self, file: &mut RedBuffer) {
+    pub fn apply(self, file: &mut RedBuffer) -> Result<(), ActionErr> {
         match self {
             Action::Delete => {
                 file.lines = file.clone().lines.into_iter()
@@ -41,14 +51,14 @@ impl Action {
                 loop {
                     let mut to_insert = "".to_string();
                     print!("> ");
-                    stdout().flush().unwrap();
-                    stdin().read_line(&mut to_insert).unwrap();
+                    stdout().flush()?;
+                    stdin().read_line(&mut to_insert)?;
                     to_insert = to_insert.trim().to_string();
                     if to_insert == "." {
                         break;
                     }
                     for line in file.cursor.lines.clone().into_iter().sorted_by(|x, y| y.cmp(x)) {
-                        file.insert_line(line, to_insert.clone());
+                        file.insert_line(line, to_insert.clone())?;
                     }
                 }
             }
@@ -56,14 +66,14 @@ impl Action {
                 loop {
                     let mut to_insert = "".to_string();
                     print!("a> ");
-                    stdout().flush().unwrap();
-                    stdin().read_line(&mut to_insert).unwrap();
+                    stdout().flush()?;
+                    stdin().read_line(&mut to_insert)?;
                     to_insert = to_insert.trim().to_string();
                     if to_insert == "." {
                         break;
                     }
                     for line in file.cursor.lines.clone().into_iter().sorted_by(|x, y| y.cmp(x)) {
-                        file.insert_line(line + 1, to_insert.clone());
+                        file.insert_line(line + 1, to_insert.clone())?;
                     }
                 }
             }
@@ -80,21 +90,21 @@ impl Action {
                     while {
                         targets = "".to_string();
                         print!("T> ");
-                        stdout().flush().unwrap();
-                        stdin().read_line(&mut targets).unwrap();
+                        stdout().flush()?;
+                        stdin().read_line(&mut targets)?;
                         targets = targets.trim().to_string();
                         if targets.len() == 0 {
-                            return;
+                            return Ok(());
                         }
                         targets.len() != 2
                     } {}
-                    let start = sel_chars.find(targets.chars().nth(0).unwrap()).unwrap();
-                    let end = sel_chars.find(targets.chars().nth(1).unwrap()).unwrap() + 1;
+                    let start = sel_chars.find(targets.chars().nth(0)?)?;
+                    let end = sel_chars.find(targets.chars().nth(1)?)? + 1;
 
                     let mut text = "".to_string();
                     print!("c> ");
-                    stdout().flush().unwrap();
-                    stdin().read_line(&mut text).unwrap();
+                    stdout().flush()?;
+                    stdin().read_line(&mut text)?;
                     text = text.trim_right_matches("\n").to_string();
 
                     let line_before = file.lines[line].clone();
@@ -111,38 +121,51 @@ impl Action {
                 let mut last_line: Option<usize> = None;
                 for (i, line) in lines_to_yank.into_iter().enumerate() {
                     let res_pos = res_lines.get(i).map(|x| *x).unwrap_or_else(|| last_line.unwrap() + 1);
-                    file.insert_line(res_pos, line);
+                    file.insert_line(res_pos, line)?;
                     last_line = Some(res_pos);
                 }
             }
             Action::Substitute(pat, rep) => {
                 let replacer: &str = &rep;
-                let rpat = Regex::new(&pat).unwrap();
+                let rpat = Regex::new(&pat)?;
                 for i in file.cursor.lines.iter() {
                     let line = file.lines[*i].clone();
                     let replaced = rpat.replace_all(&line, replacer).into_owned();
                     file.lines[*i] = replaced;
                 }
             }
-            Action::Write(path) => {
-                let mut out = File::create(path.trim()).unwrap();
+            Action::Write(n_path) => {
+                let path =
+                    if n_path.trim().is_empty() {
+                        file.clone().filename?
+                    } else { n_path };
+                let mut out = File::create(path.trim())?;
                 let mut first = true;
                 for line in file.lines.iter() {
                     if !first {
-                        out.write(&[10]).unwrap();
+                        out.write(&[10])?;
                     }
                     first = false;
-                    out.write(line.bytes().collect::<Vec<u8>>().as_slice()).unwrap();
+                    out.write(line.bytes().collect::<Vec<u8>>().as_slice())?;
                 }
+                file.filename = Some(path);
             }
             Action::Edit(path) => {
-                let mut f = File::open(path.trim()).unwrap_or_else(|_| File::create(path.trim()).unwrap());
-                let mut content = String::new();
-                f.read_to_string(&mut content).unwrap();
+                let mut f = File::open(path.trim());
+                if f.is_ok() {
+                    let mut f = f.unwrap();
+                    let mut content = String::new();
+                    f.read_to_string(&mut content)?;
 
-                file.lines = content.lines().map(|x| x.to_string()).collect();
-                file.cursor = Range::empty();
-                println!("Editing {} [{}]", path.trim(), file.lines.len());
+                    file.lines = content.lines().map(|x| x.to_string()).collect();
+                    file.cursor = Range::empty();
+                    println!("Editing {} [{}]", path.trim(), file.lines.len());
+                } else {
+                    file.lines = vec![];
+                    file.cursor = Range::empty();
+                    println!("Editing {} [NEW]", path.trim());
+                }
+                file.filename = Some(path.trim().to_string());
             }
             Action::Print => {
                 let mut next = None;
@@ -165,6 +188,24 @@ impl Action {
                 }
             }
         }
+        Ok(())
+    }
+}
 
+impl From<io::Error> for ActionErr {
+    fn from(_: io::Error) -> ActionErr {
+        ActionErr::IO
+    }
+}
+
+impl From<option::NoneError> for ActionErr {
+    fn from(_: option::NoneError) -> ActionErr {
+        ActionErr::OutOfBounds
+    }
+}
+
+impl From<regex::Error> for ActionErr {
+    fn from(_: regex::Error) -> ActionErr {
+        ActionErr::Regex
     }
 }
