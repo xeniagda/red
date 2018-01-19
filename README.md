@@ -15,7 +15,7 @@ Here is a screenshot from a typical session with `red`:
 
 ## Ranges
 Ranges in `red` represents a section of the lines in a document.
-A range does not have to be continous, you can, for example, have a range
+A range does not have to be continuous, you can, for example, have a range
 that includes all lines containing a specific word, etc.
 A range can be made using the following commands:
 
@@ -36,7 +36,7 @@ If no range is entered, the last range is used.
 To do anything on the ranges, you can use "actions". An action can be a thing such as printing the range, deleting it, etc.
 Here's a list of commands:
 
-(`<x>` means that `x` is manditory, `[x]` means `x` is optional)
+(`<x>` means that `x` is mandatory, `[x]` means `x` is optional)
 * `p`: Print the range with numbers
 * `P`: Print the range without numbers
 * `i`: Insert text before the range
