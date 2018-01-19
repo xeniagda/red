@@ -2,7 +2,7 @@ use range::Range;
 use action::ActionErr;
 
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RedBuffer {
     pub lines: Vec<String>,
     pub cursor: Range,

@@ -9,20 +9,20 @@ extern crate termion;
 mod range;
 mod red_buffer;
 mod action;
+mod red_master;
 
 use std::env::args;
 
 use nom::IResult;
 
-use range::Range;
 use range::parse::parse_range;
 use action::parse::parse_action;
 use action::Action;
 use action::ActionErr;
-use red_buffer::RedBuffer;
+use red_master::RedMaster;
 
 fn main() {
-    let mut file = RedBuffer::empty();
+    let mut file = RedMaster::empty();
     for arg in args().skip(1) {
         if let Err(ActionErr::IO) = Action::Edit(true, arg).apply(&mut file) {
             eprintln!("Couldn't read file!");
@@ -34,7 +34,7 @@ fn main() {
     loop {
         let mut line = "".to_string();
         std::io::stdin().read_line(&mut line).unwrap();
-        if line == line.trim() {
+        if line == "" {
             break;
         }
         line = line.trim_right_matches("\n").to_string();
@@ -47,46 +47,46 @@ fn main() {
         let lineclone = line.clone();
         let range = parse_range(
                 &lineclone,
-                &file
+                &file.curr_buf()
                 );
 
         match range {
             IResult::Done(rest, range) => {
-                file.cursor = range;
+                file.curr_buf_mut().cursor = range;
                 line = rest.to_string();
             }
             IResult::Error(e) => {
-                eprintln!("Error: {:?}", e);
+                eprintln!("Range error: {:?}", e);
                 continue;
             }
             IResult::Incomplete(e) => {
-                eprintln!("Incomplete: {:?}", e);
+                eprintln!("Range incomplete: {:?}", e);
                 continue;
             }
         }
 
         while line.trim().len() > 0 {
             let lineclone = line.clone();
-            let action = parse_action(&lineclone, &file);
+            let action = parse_action(&lineclone, &file.curr_buf());
+
             match action {
                 IResult::Done(rest, action) => {
                     if let Err(x) = action.apply(&mut file) {
-                        eprintln!("Err: {:?}", x);
+                        eprintln!("Application error: {:?}", x);
                     }
                     line = rest.to_string();
                 }
                 IResult::Error(e) => {
-                    eprintln!("Error: {:?} from {:?}", e, line);
+                    eprintln!("Action parse error: {:?} from {:?}", e, line);
                     break;
                 }
                 IResult::Incomplete(e) => {
-                    eprintln!("Incomplete: {:?}", e);
+                    eprintln!("Action incomplete: {:?}", e);
                     break;
                 }
             }
         }
     }
-    
-}
 
+}
 

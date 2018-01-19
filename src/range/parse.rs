@@ -6,34 +6,43 @@ use red_buffer::RedBuffer;
 use range::Range;
 
 pub fn parse_range<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
-    alt!(
+    alt_complete!(
         inp,
 
         do_parse!(
-            ranges: separated_nonempty_list!(tag!("+"), alt!(apply!(offset, ctx) | apply!(expand, ctx) | apply!(parse_one_range, ctx))) >>
-            ({
+            ranges: separated_nonempty_list_complete!(
+                tag!("+"),
+                alt_complete!(
+                    apply!(offset, ctx)
+                    | apply!(expand, ctx)
+                    | apply!(parse_one_range, ctx)
+                    | delimited!(tag_s!("("), apply!(parse_range, ctx), tag_s!(")"))
+                    )
+                ) >>
+            ( {
                 let mut combined_ranges = HashSet::new();
                 for range in ranges {
                     for line in range.lines {
                         combined_ranges.insert(line);
                     }
                 }
-                Range {lines: combined_ranges }
-            })
-            ) |
-        value!(ctx.cursor.clone())
+                Range { lines: combined_ranges }
+            } )
+            )
+        | value!(ctx.cursor.clone())
 
         )
+
 }
 
 fn parse_one_range<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
-    alt!(
+    alt_complete!(
         inp,
 
-        apply!(search, ctx) |
-        apply!(range, ctx) |
-        apply!(line_range, ctx) |
-        apply!(special, ctx)
+        apply!(search, ctx)
+        | apply!(range, ctx)
+        | apply!(line_range, ctx)
+        | apply!(special, ctx)
         )
 }
 
@@ -89,7 +98,7 @@ fn expand<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
 }
 
 fn line<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, usize> {
-    alt!(
+    alt_complete!(
         inp,
 
         apply!(relative, ctx) |
@@ -150,14 +159,14 @@ fn special<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
         )
 }
 
-named!(parse_usize<&str, usize>,
+named!(pub parse_usize<&str, usize>,
        flat_map!(
            recognize!(many1!(digit)),
            parse_to!(usize)
                 )
        );
 
-named!(parse_isize<&str, isize>,
+named!(pub parse_isize<&str, isize>,
        flat_map!(
            recognize!(preceded!(opt!(tag_s!("-")), many1!(digit))),
            parse_to!(isize)

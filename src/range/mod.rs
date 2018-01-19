@@ -2,7 +2,7 @@ pub mod parse;
 
 use std::collections::HashSet;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Range {
     pub lines: HashSet<usize>
 }
