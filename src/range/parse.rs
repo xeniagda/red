@@ -110,7 +110,7 @@ fn line<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, usize> {
         )
 }
 
-fn relative<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, usize> {
+fn relative<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, usize> {
     do_parse!(
         inp,
 

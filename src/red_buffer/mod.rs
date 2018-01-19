@@ -25,6 +25,6 @@ impl RedBuffer {
         Ok(())
     }
     pub fn empty() -> RedBuffer {
-        RedBuffer { lines: vec![], cursor: Range::empty(), filename: None, saved: true }
+        RedBuffer { lines: vec![ "".into() ], cursor: Range::empty(), filename: None, saved: true }
     }
 }

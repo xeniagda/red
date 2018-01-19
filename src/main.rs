@@ -23,6 +23,7 @@ use red_master::RedMaster;
 
 fn main() {
     let mut file = RedMaster::empty();
+
     for arg in args().skip(1) {
         if let Err(ActionErr::IO) = Action::Edit(true, arg).apply(&mut file) {
             eprintln!("Couldn't read file!");

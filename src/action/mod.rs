@@ -4,6 +4,8 @@ use std::io::{stdin, stdout, Write, Read};
 use std::io;
 use std::option;
 use std::fs::File;
+use std::process::exit;
+
 use termion::{color, style};
 use lazysort::{Sorted, SortedBy};
 use regex::Regex;
@@ -13,18 +15,23 @@ use red_master::RedMaster;
 use red_buffer::RedBuffer;
 use range::Range;
 
-static SEL_CHARS: &str = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}";
+static SEL_CHARS: &str =
+    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}";
 
 #[derive(Debug, Clone)]
 pub enum Action {
-    Delete,  // Deletes a line
     Insert,  // Inserts text before a line
     Change,  // Change the content of a line
     Append,  // Append text at the end of a line
+    Delete(String),  // Optionally puts into a registers
+    Yank(String),
+    Paste(String),
+
+    Registers(Option<String>), // Show the contets of all or any register
 
     Clear, // Clear the screen
 
-    CopyTo(Range),   // Move a range from one place to another
+    CopyTo(Range),   // Copy a range from one place to another
     Substitute(String, String), // Substitute a by b
 
     Print,   // Print a range with line number
@@ -32,7 +39,7 @@ pub enum Action {
 
     BufList, // List all buffers
     BufChange(usize), // Change buffer
-    BufNew, // New buffer
+    BufNew(Option<String>), // New buffer
     BufDel(bool), // Delete buffer (force)
 
     Write(String),
@@ -42,7 +49,9 @@ pub enum Action {
 #[derive(Debug)]
 pub enum ActionErr {
     OutOfBounds,
+    NoRange,
     IO,
+    NoSuchRegisters,
     Regex,
     Other,
 }
@@ -50,12 +59,24 @@ pub enum ActionErr {
 impl Action {
     pub fn apply(self, master: &mut RedMaster) -> Result<(), ActionErr> {
         match self {
-            Action::Delete => {
-                let file = master.curr_buf_mut();
-                file.lines = file.clone().lines.into_iter()
+            Action::Delete(reg) => {
+                let removed_lines = {
+                    let file = master.curr_buf_mut();
+
+                    let removed_lines: Vec<_> = file.lines.clone().into_iter()
+                        .enumerate()
+                        .filter_map(|(i, line)| if file.cursor.lines.contains(&i) { Some(line) } else { None })
+                        .collect();
+
+                    file.lines = file.clone().lines.into_iter()
                         .enumerate()
                         .filter_map(|(i, line)| if !file.cursor.lines.contains(&i) { Some(line) } else { None })
                         .collect();
+
+                    removed_lines
+                };
+
+                master.registers.insert(reg.into(), removed_lines);
             }
             Action::Insert => {
                 let file = master.curr_buf_mut();
@@ -131,17 +152,73 @@ impl Action {
                     file.saved = false;
                 }
             }
-            Action::Clear => {
-                use std::io::stdout;
+            Action::Yank(reg) => {
+                let lines = {
+                    let file = master.curr_buf_mut();
 
+                    file.lines.clone().into_iter()
+                        .enumerate()
+                        .filter_map(|(i, line)| if file.cursor.lines.contains(&i) { Some(line) } else { None })
+                        .collect()
+                };
+
+                master.registers.insert(reg.into(), lines);
+            }
+            Action::Paste(reg) => {
+                if let Some(lines_to_paste) = master.registers.clone().get(&reg.into()) {
+                    let file = master.curr_buf_mut();
+
+                    let mut last_line: Option<usize> = None;
+
+                    let lines_locations: Vec<_> =
+                        file.cursor.lines.clone().into_iter()
+                        .sorted().collect();
+
+                    for (i, line) in lines_to_paste.into_iter().enumerate() {
+                        if let Some(location) = lines_locations.get(i) {
+                            file.lines.insert(*location, line.clone());
+                            last_line = Some(*location);
+                        } else if let Some(location) = last_line {
+                            file.lines.insert(location + 1, line.clone());
+                            last_line = Some(location + 1);
+                        } else {
+                            return Err(ActionErr::NoRange);
+                        }
+                    }
+
+                } else {
+                    return Err(ActionErr::NoSuchRegisters);
+                }
+            }
+            Action::Registers(Some(reg)) => {
+                if let Some(content) = master.registers.clone().get(&reg.clone().into()) {
+                    println!("{}:", reg);
+                    for line in content {
+                        println!("    {}", line);
+                    }
+                } else {
+                    return Err(ActionErr::NoSuchRegisters);
+                }
+            }
+            Action::Registers(None) => {
+                for reg in master.registers.clone().keys() {
+                    Action::Registers(Some((&*reg.clone()).into())).apply(master)?;
+                }
+            }
+            Action::Clear => {
                 print!("\x1B[2J\x1B[1;1H");
                 stdout().flush().expect("Can't flush STDOUT");
             }
             Action::CopyTo(to) => {
                 let file = master.curr_buf_mut();
-                let lines_to_yank: Vec<String> = file.cursor.lines.clone().into_iter().sorted().map(|l| file.lines[l].clone()).collect();
+                let lines_to_yank: Vec<_> =
+                        file.cursor.lines.clone().into_iter()
+                        .sorted()
+                        .map(|l| file.lines[l].clone())
+                        .collect();
                 let res_lines: Vec<usize> = to.lines.into_iter().sorted().collect();
                 let mut last_line: Option<usize> = None;
+
                 for (i, line) in lines_to_yank.into_iter().enumerate() {
                     let res_pos = res_lines.get(i).map(|x| *x).unwrap_or_else(|| last_line.unwrap() + 1);
                     file.insert_line(res_pos, line)?;
@@ -186,7 +263,7 @@ impl Action {
                     return Err(ActionErr::Other);
                 }
                 if master.buffers.len() == 1 {
-                    return Err(ActionErr::OutOfBounds);
+                    exit(0);
                 }
                 let idx = master.curr_buf_idx().clone();
                 master.buffers.remove(idx);
@@ -194,10 +271,17 @@ impl Action {
                     master.change_buffer(idx - 1)?;
                 }
             }
-            Action::BufNew => {
+            Action::BufNew(None) => {
                 master.buffers.push(RedBuffer::empty());
                 let buffers = master.buffers.len();
                 master.change_buffer(buffers - 1)?;
+            }
+            Action::BufNew(Some(file_name)) => {
+                master.buffers.push(RedBuffer::empty());
+                let buffers = master.buffers.len();
+                master.change_buffer(buffers - 1)?;
+
+                Action::Edit(true, file_name).apply(master)?;
             }
             Action::BufChange(i) => {
                 master.change_buffer(i)?;

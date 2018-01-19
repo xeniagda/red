@@ -1,3 +1,5 @@
+<img src="https://github.com/loovjo/red/blob/master/logo.png" width=200px/>
+
 # Ranges
 Ranges in `red` represents a section of the lines in a document.
 A range does not have to be continous, you can, for example, have a range

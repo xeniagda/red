@@ -10,7 +10,9 @@ pub fn parse_action<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Actio
     alt_complete!(
         inp,
 
-        flat_map!(tag!("d"), value!(Action::Delete)) |
+        apply!(paste, ctx) |
+        apply!(yank, ctx) |
+        apply!(delete, ctx) |
         flat_map!(tag!("i"), value!(Action::Insert)) |
         flat_map!(tag!("cl"), value!(Action::Clear)) |
         flat_map!(tag!("c"), value!(Action::Change)) |
@@ -18,8 +20,9 @@ pub fn parse_action<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Actio
         flat_map!(tag!("p"), value!(Action::Print)) |
         flat_map!(tag!("P"), value!(Action::Print_)) |
         flat_map!(tag!("bl"), value!(Action::BufList)) |
-        flat_map!(tag!("bn"), value!(Action::BufNew)) |
+        apply!(regs, ctx) |
         apply!(buf_change, ctx) |
+        apply!(buf_new, ctx) |
         apply!(buf_del, ctx) |
         apply!(copy_to, ctx) |
         apply!(substitute, ctx) |
@@ -28,22 +31,68 @@ pub fn parse_action<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Actio
         )
 }
 
+pub fn delete<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
+    do_parse!(
+        inp,
 
-pub fn buf_del<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Action> {
+        tag!("d") >>
+        register: is_not_s!(" ") >>
+        (Action::Delete(register.into()))
+        )
+}
+
+pub fn yank<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
+    do_parse!(
+        inp,
+
+        tag!("y") >>
+        register: is_not_s!(" ") >>
+        (Action::Yank(register.into()))
+        )
+}
+
+pub fn paste<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
+    do_parse!(
+        inp,
+
+        tag!("pa") >>
+        register: is_not_s!(" ") >>
+        (Action::Paste(register.into()))
+        )
+}
+
+pub fn regs<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
     alt_complete!(
         inp,
         do_parse!(
-            tag!("bd!") >>
+            tag!("r") >>
+            first: take_s!(1) >>
+            rest: is_not_s!(" ") >>
+            (Action::Registers(Some(format!("{}{}", first, rest))))
+            ) |
+        do_parse!(
+            tag!("r") >>
+            (Action::Registers(None))
+            )
+
+        )
+}
+
+pub fn buf_del<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
+    alt_complete!(
+        inp,
+        do_parse!(
+            tag!("q!") >>
             (Action::BufDel(true))
             ) |
         do_parse!(
-            tag!("bd") >>
+            tag!("q") >>
             (Action::BufDel(false))
             )
         )
 }
 
-pub fn buf_change<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Action> {
+pub fn buf_change<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
     do_parse!(
         inp,
 
@@ -54,7 +103,23 @@ pub fn buf_change<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Action>
     )
 }
 
-pub fn substitute<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Action> {
+pub fn buf_new<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
+    alt_complete!(
+        inp,
+        do_parse!(
+            tag!("bn") >>
+            first: take_s!(1) >>
+            rest: is_not_s!("") >>
+            (Action::BufNew(Some(format!("{}{}", first, rest))))
+            ) |
+        do_parse!(
+            tag!("bn") >>
+            (Action::BufNew(None))
+            )
+        )
+}
+
+pub fn substitute<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
     do_parse!(
         inp,
 
@@ -76,7 +141,7 @@ pub fn copy_to<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Action> {
         )
 }
 
-pub fn write<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Action> {
+pub fn write<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
     do_parse!(
         inp,
 
@@ -86,7 +151,7 @@ pub fn write<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Action> {
         )
 }
 
-pub fn read<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Action> {
+pub fn read<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
     alt!(
         inp,
 
