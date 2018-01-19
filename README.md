@@ -9,7 +9,7 @@ with unimportant things, such as the contents of the file you're editing. You ar
 you want, and don't want to see.
 
 Here is a screenshot from a typical session with `red`:
-<img src="https://github.com/loovjo/red/blob/master/screenshot.png" width=500px/>
+<img src="https://github.com/loovjo/red/blob/master/Screenshot.png" width=500px/>
 
 # Usage:
 
