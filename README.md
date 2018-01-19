@@ -51,7 +51,7 @@ Here's a list of commands:
 * `pa[reg]`: Pastes the contents of the specified register into the buffer at that range
 * `r[reg]`: Displays the content of the specified register, or all if none specified
 * `bl`: List buffers
-* `bc<n>: Change to buffer `n`
+* `bc<n>`: Change to buffer `n`
 * `cl`: Clears the screen
 * `bn`: Create a new buffer
 * `q`: Quits the current buffer. If this is the last buffer, the entire program quits.
