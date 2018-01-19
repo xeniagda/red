@@ -58,7 +58,7 @@ pub enum ActionErr {
 
 impl Action {
     pub fn apply(self, master: &mut RedMaster) -> Result<(), ActionErr> {
-        match self {
+        let modified = match self {
             Action::Delete(reg) => {
                 let removed_lines = {
                     let file = master.curr_buf_mut();
@@ -76,10 +76,14 @@ impl Action {
                     removed_lines
                 };
 
+                let modified = !removed_lines.is_empty();
                 master.registers.insert(reg.into(), removed_lines);
+
+                modified
             }
             Action::Insert => {
                 let file = master.curr_buf_mut();
+                let mut modified = false;
                 loop {
                     let mut to_insert = "".to_string();
                     print!("> ");
@@ -92,10 +96,14 @@ impl Action {
                     for line in file.cursor.lines.clone().into_iter().sorted_by(|x, y| y.cmp(x)) {
                         file.insert_line(line, to_insert.clone())?;
                     }
+                    modified = true;
                 }
+
+                modified
             }
             Action::Append => {
                 let file = master.curr_buf_mut();
+                let mut modified = false;
                 let mut i = 1;
                 loop {
                     let mut to_insert = "".to_string();
@@ -110,7 +118,9 @@ impl Action {
                         file.insert_line(line + i, to_insert.clone())?;
                     }
                     i += 1;
+                    modified = true;
                 }
+                modified
             }
             Action::Change => {
                 let file = master.curr_buf_mut();
@@ -149,8 +159,9 @@ impl Action {
                     if end < content.len() {
                         file.lines[line].push_str(&line_before[end..]);
                     }
-                    file.saved = false;
                 }
+
+                true
             }
             Action::Yank(reg) => {
                 let lines = {
@@ -163,6 +174,8 @@ impl Action {
                 };
 
                 master.registers.insert(reg.into(), lines);
+
+                false
             }
             Action::Paste(reg) => {
                 if let Some(lines_to_paste) = master.registers.clone().get(&reg.into()) {
@@ -186,9 +199,11 @@ impl Action {
                         }
                     }
 
+                    true
                 } else {
                     return Err(ActionErr::NoSuchRegisters);
                 }
+
             }
             Action::Registers(Some(reg)) => {
                 if let Some(content) = master.registers.clone().get(&reg.clone().into()) {
@@ -199,15 +214,18 @@ impl Action {
                 } else {
                     return Err(ActionErr::NoSuchRegisters);
                 }
+                false
             }
             Action::Registers(None) => {
                 for reg in master.registers.clone().keys() {
                     Action::Registers(Some((&*reg.clone()).into())).apply(master)?;
                 }
+                false
             }
             Action::Clear => {
                 print!("\x1B[2J\x1B[1;1H");
                 stdout().flush().expect("Can't flush STDOUT");
+                false
             }
             Action::CopyTo(to) => {
                 let file = master.curr_buf_mut();
@@ -224,6 +242,7 @@ impl Action {
                     file.insert_line(res_pos, line)?;
                     last_line = Some(res_pos);
                 }
+                true
             }
             Action::Substitute(pat, rep) => {
                 let file = master.curr_buf_mut();
@@ -234,6 +253,7 @@ impl Action {
                     let replaced = rpat.replace_all(&line, replacer).into_owned();
                     file.lines[*i] = replaced;
                 }
+                true
             }
             Action::BufList => {
                 for (i, buf) in master.buffers.iter().enumerate() {
@@ -256,6 +276,7 @@ impl Action {
                     }
                     println!("{}", style::Reset);
                 }
+                false
             }
             Action::BufDel(force) => {
                 if !master.curr_buf().saved && !force {
@@ -270,11 +291,13 @@ impl Action {
                 if idx > 0 {
                     master.change_buffer(idx - 1)?;
                 }
+                false
             }
             Action::BufNew(None) => {
                 master.buffers.push(RedBuffer::empty());
                 let buffers = master.buffers.len();
                 master.change_buffer(buffers - 1)?;
+                false
             }
             Action::BufNew(Some(file_name)) => {
                 master.buffers.push(RedBuffer::empty());
@@ -282,9 +305,11 @@ impl Action {
                 master.change_buffer(buffers - 1)?;
 
                 Action::Edit(true, file_name).apply(master)?;
+                false
             }
             Action::BufChange(i) => {
                 master.change_buffer(i)?;
+                false
             }
             Action::Write(n_path) => {
                 let file = master.curr_buf_mut();
@@ -303,6 +328,8 @@ impl Action {
                 }
                 file.filename = Some(path);
                 file.saved = true;
+
+                false
             }
             Action::Edit(force, path) => {
                 let file = master.curr_buf_mut();
@@ -326,6 +353,8 @@ impl Action {
                 }
                 file.saved = true;
                 file.filename = Some(path.trim().to_string());
+
+                false
             }
             Action::Print => {
                 let file = master.curr_buf_mut();
@@ -350,13 +379,19 @@ impl Action {
                     }
                     next = Some(line + 1);
                 }
+                false
             }
             Action::Print_ => {
                 let file = master.curr_buf_mut();
                 for line in file.cursor.lines.iter().sorted() {
                     println!("{}", file.lines[*line]);
                 }
+                false
             }
+        };
+
+        if modified {
+            master.curr_buf_mut().saved = false;
         }
         Ok(())
     }
