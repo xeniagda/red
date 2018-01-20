@@ -1,7 +1,7 @@
 pub mod parse;
 
-use std::io::{stdin, stdout, Write, Read};
 use std::io;
+use std::io::{stdout, Write, Read};
 use std::option;
 use std::fs::File;
 use std::process::exit;
@@ -11,6 +11,7 @@ use lazysort::{Sorted, SortedBy};
 use regex::Regex;
 use regex;
 
+use readline::read_line;
 use red_master::RedMaster;
 use red_buffer::RedBuffer;
 use range::Range;
@@ -85,11 +86,11 @@ impl Action {
                 let file = master.curr_buf_mut();
                 let mut modified = false;
                 loop {
-                    let mut to_insert = "".to_string();
-                    print!("> ");
-                    stdout().flush()?;
-                    stdin().read_line(&mut to_insert)?;
-                    to_insert = to_insert.trim_right_matches("\n").to_string();
+                    let to_insert = read_line("i> ");
+                    if let Err(_) = to_insert {
+                        break;
+                    }
+                    let to_insert = to_insert.unwrap();
                     if to_insert == "." {
                         break;
                     }
@@ -106,11 +107,12 @@ impl Action {
                 let mut modified = false;
                 let mut i = 1;
                 loop {
-                    let mut to_insert = "".to_string();
-                    print!("a> ");
-                    stdout().flush()?;
-                    stdin().read_line(&mut to_insert)?;
-                    to_insert = to_insert.trim_right_matches("\n").to_string();
+                    let to_insert = read_line("a> ");
+                    if let Err(_) = to_insert {
+                        break;
+                    }
+                    let to_insert = to_insert.unwrap();
+
                     if to_insert == "." {
                         break;
                     }
@@ -132,26 +134,30 @@ impl Action {
                     println!("  {}", content);
                     println!("{}  {}{}", color::Fg(color::Cyan), sel_chars, style::Reset);
 
-                    let mut targets;
-                    while {
-                        targets = "".to_string();
-                        print!("T> ");
-                        stdout().flush()?;
-                        stdin().read_line(&mut targets)?;
-                        targets = targets.trim().to_string();
+                    let mut targets = "".to_string();
+                    loop {
+                        let line = read_line("T> ");
+                        if let Err(_) = line {
+                            break;
+                        }
+                        targets = line.unwrap();
+
                         if targets.len() == 0 {
                             return Ok(());
                         }
-                        targets.len() != 2
-                    } {}
+                        if targets.len() == 2 {
+                            break;
+                        }
+                    }
                     let start = sel_chars.find(targets.chars().nth(0)?)?;
                     let end = sel_chars.find(targets.chars().nth(1)?)? + 1;
 
-                    let mut text = "".to_string();
-                    print!("c> ");
-                    stdout().flush()?;
-                    stdin().read_line(&mut text)?;
-                    text = text.trim_right_matches("\n").to_string();
+                    let text = read_line("c> ");
+                    if let Err(_) = text {
+                        break;
+                    }
+                    let text = text.unwrap();
+
 
                     let line_before = file.lines[line].clone();
                     file.lines[line] = line_before[..start].to_string();

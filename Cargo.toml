@@ -4,7 +4,9 @@ version = "0.1.1"
 authors = ["loovjo <jonathan.loov@gmail.com>"]
 
 [dependencies]
+lazy_static = "1.0"
 nom = "3.2"
 regex = "0.2"
 lazysort = "0.2.0"
 termion = "1.0.0"
+rustyline = "1.0.0"

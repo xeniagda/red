@@ -2,6 +2,10 @@
 
 #[macro_use]
 extern crate nom;
+#[macro_use]
+extern crate lazy_static;
+
+extern crate rustyline;
 extern crate regex;
 extern crate lazysort;
 extern crate termion;
@@ -10,6 +14,9 @@ mod range;
 mod red_buffer;
 mod action;
 mod red_master;
+mod readline;
+
+use readline::read_line;
 
 use std::env::args;
 
@@ -33,12 +40,13 @@ fn main() {
     let mut last_line = "".to_string();
 
     loop {
-        let mut line = "".to_string();
-        std::io::stdin().read_line(&mut line).unwrap();
-        if line == "" {
+        let line = read_line("");
+
+        if let Err(_) = line {
             break;
         }
-        line = line.trim_right_matches("\n").to_string();
+
+        let mut line = line.unwrap();
 
         if line.trim() == "!" {
             line = last_line.clone();
