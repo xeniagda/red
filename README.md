@@ -44,21 +44,26 @@ Here's a list of commands:
 * `t<range>`: Copies the text in the current range to the specified location
 * `s/REGEX/REPLACEMENT`: Replace `REGEX` with `REPLACEMENT` in the range.
 * `c`: Change content in the middle of the line
-* `w [path]`: Write the file, optionally to `[path]`
-* `e <path>`: Edit that file
+* `w[path]`: Write the file, optionally to `[path]`
+* `e<path>`: Edit that file
 * `d[reg]`: Delete all the lines in that range, storing them in that register
 * `y[reg]`: Copies, yanks, the lines in the range to that register
 * `pa[reg]`: Pastes the contents of the specified register into the buffer at that range
 * `r[reg]`: Displays the content of the specified register, or all if none specified
 * `bl`: List buffers
 * `bc<n>`: Change to buffer `n`
-* `cl`: Clears the screen
-* `bn`: Create a new buffer
+* `bn[path]`: Create a new buffer. If `[path]` is specified, that file will be opened.
 * `q`: Quits the current buffer. If this is the last buffer, the entire program quits.
+* `cl`: Clears the screen
 
+More details about each action and range can be found in the [Details.md file][details.md]
 
 ## Registers
 A register is basically a named clipboard. If no register is specified, the `'` register is defaulted.
 
+## Buffers
+In `red`, you can have many files open at once, called buffers. The commands `bl`, `bn`, `bc` and `q` are used to manage buffers.
+
 ## Examples and useful stuff:
 * `%p`: Print the entire buffer, with line numbers
+* `0#10+$-10p`: Print the first and last 10 lines in the buffer, with line numbers
