@@ -126,29 +126,31 @@ impl Action {
             }
             Action::Change => {
                 let file = master.curr_buf_mut();
-                for line in file.cursor.lines.clone().into_iter().sorted() {
+                'outer: for line in file.cursor.lines.clone().into_iter().sorted() {
                     let content = file.lines[line].clone();
                     let mut sel_chars = SEL_CHARS.to_string();
-                    sel_chars.truncate(content.len() + 1);
+                    sel_chars.truncate(content.len() + 2);
 
                     println!("  {}", content);
                     println!("{}  {}{}", color::Fg(color::Cyan), sel_chars, style::Reset);
 
-                    let mut targets = "".to_string();
+                    let mut targets;
                     loop {
                         let line = read_line("T> ");
                         if let Err(_) = line {
-                            break;
+                            break 'outer;
                         }
+
                         targets = line.unwrap();
 
                         if targets.len() == 0 {
-                            return Ok(());
+                            continue 'outer;
                         }
                         if targets.len() == 2 {
                             break;
                         }
                     }
+
                     let start = sel_chars.find(targets.chars().nth(0)?)?;
                     let end = sel_chars.find(targets.chars().nth(1)?)? + 1;
 
