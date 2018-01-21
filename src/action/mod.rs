@@ -150,13 +150,13 @@ impl Action {
                         if targets.len() == 0 {
                             continue 'outer;
                         }
-                        if targets.len() == 2 {
+                        if targets.len() <= 2 {
                             break;
                         }
                     }
 
                     let start = sel_chars.find(targets.chars().nth(0)?)?;
-                    let end = sel_chars.find(targets.chars().nth(1)?)? + 1;
+                    let end = sel_chars.find(targets.chars().last()?)? + 1;
 
                     let text = read_line("c> ");
                     if let Err(_) = text {

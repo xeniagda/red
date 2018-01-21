@@ -16,7 +16,6 @@ pub fn parse_range<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range>
                     apply!(offset, ctx)
                     | apply!(expand, ctx)
                     | apply!(parse_one_range, ctx)
-                    | delimited!(tag_s!("("), apply!(parse_range, ctx), tag_s!(")"))
                     )
                 ) >>
             ( {
@@ -41,8 +40,22 @@ fn parse_one_range<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range>
 
         apply!(search, ctx)
         | apply!(range, ctx)
+        | apply!(invert, ctx)
         | apply!(line_range, ctx)
         | apply!(special, ctx)
+        | delimited!(tag_s!("("), apply!(parse_range, ctx), tag_s!(")"))
+        )
+}
+
+fn invert<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
+    do_parse!(
+        inp,
+
+        tag_s!("!") >>
+        range: apply!(parse_range, ctx) >>
+        (
+            Range { lines: (0..ctx.lines.len()).collect::<HashSet<_>>().difference(&range.lines).map(|x| x.clone()).collect() }
+        )
         )
 }
 
@@ -70,30 +83,50 @@ fn offset<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
         )
 }
 
+
 fn expand<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
-    do_parse!(
+    alt!(
         inp,
 
-        range: apply!(parse_one_range, ctx) >>
-        tag!("#") >>
-        num: parse_isize >>
-        ({
-            let mut res = HashSet::new();
-            if num < 0 {
-                for i in 0..-num + 1 {
-                    for x in range.lines.clone() {
-                        res.insert(x.saturating_sub(i as usize));
+        do_parse!(
+            range: apply!(parse_one_range, ctx) >>
+            tag!("#") >>
+            num: parse_isize >>
+            ({
+                let mut res = HashSet::new();
+                if num < 0 {
+                    for i in 0..-num + 1 {
+                        for x in range.lines.clone() {
+                            res.insert(x.saturating_sub(i as usize));
+                        }
+                    }
+                } else {
+                    for i in 0..num + 1 {
+                        for x in range.lines.clone() {
+                            res.insert(x.wrapping_add(i as usize));
+                        }
                     }
                 }
-            } else {
-                for i in 0..num + 1 {
+                Range { lines: res }
+            })
+        ) |
+        do_parse!(
+
+            range: apply!(parse_one_range, ctx) >>
+            tag!("##") >>
+            num: parse_isize >>
+            ({
+                let mut res = HashSet::new();
+
+                for i in -num..num + 1 {
                     for x in range.lines.clone() {
                         res.insert(x.wrapping_add(i as usize));
                     }
                 }
-            }
-            Range { lines: res }
-        })
+                Range { lines: res }
+            })
+        )
+
         )
 }
 

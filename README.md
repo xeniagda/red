@@ -21,14 +21,16 @@ A range can be made using the following commands:
 
 (`x`, `y` are other ranges, `n`, `m` are numbers)
 
-* `n-m`: Select all lines between `n` and `m`, both inclusive.
-* `n`: The `n`-th line in the buffer.
-* `$`: The last line in the buffer.
+* `n-m`: Select all lines between `n` and `m`, both inclusive
+* `n`: The `n`-th line in the buffer
+* `$`: The last line in the buffer
 * `%`: The entire buffer, same as `0-$`
 * `/REGEX/`: All lines matching that regex
 * `x+y`: The range `x` combined with the range `y`
 * `x#n`: Expand the range `x` by `n` lines
+* `x##n`: Expand the range `x` by `n` lines, upwards and downwards. Same as `(x#n)#-n`
 * `x^n`: The range `x`, shifted `n` lines down. (`n` can be negative)
+* `!x`: Invert `x`, all the lines not in `x`
 
 If no range is entered, the last range is used.
 
