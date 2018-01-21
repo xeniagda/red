@@ -1,9 +1,6 @@
-
-
 # Ranges
 
 ## True ranges and line ranges
-This is a line containing an error which needs to be changed
 
 When writing ranges, there are normal ranges and a subset called "line ranges".
 Line ranges are, as the name suggests, ranges that just span one line. An example of this is `$`.
@@ -13,7 +10,7 @@ Commands such as `^` will keep the type of range, so eg. `$^10` will still be co
 
 ## Advanced range construction details
 
-* `x#n`: If `n` is positive, `x` is copied downwards onto itself `n` times, otherwise `x` is copied upwards `-n` times. For example, `5#7` will select lines 5, 6, 7
+* `x#n`: If `n` is positive, `x` is copied downwards onto itself `n` times, otherwise `x` is copied upwards `-n` times. For example, `5#7` will select lines 5, 6, 7.
 and `/Hello/#3` will span every line containing the word "Hello" and three lines below it.
 
 
@@ -21,7 +18,7 @@ and `/Hello/#3` will span every line containing the word "Hello" and three lines
 
 * `a`, `i`: These commands insert text at the respective locations. `i` inserts text before and `a` inserts, or appends, text after the range.
 If the range spans multiple lines, this command will insert/append text at every selected line.
-To end inserting text, enter a line containing nothing but a single period: `.`
+To end inserting text, enter a line containing nothing but a single period: `.`.
 
 * `c`: This command is used to change the content of a line.
 The line is displayed, together with "targets" below each char. Each target is just a unique chararcter which you can select the range you want to change.
@@ -30,7 +27,7 @@ Here's an example of it's usage:
 
     5c
       This is a line containing an errror which needs to be changed
-      0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+      0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXY$
     T> ty
     c> error
     p
