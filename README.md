@@ -42,6 +42,8 @@ Here's a list of commands:
 * `i`: Insert text before the range
 * `a`: Append text after the range. End the insertion with a single period (`.`)
 * `t<range>`: Copies the text in the current range to the specified location
+* `A<text>`: Append `<text>` to every line in the range.
+* `I<text>`: Insert `<text>` in the beginnig of every line in the range.
 * `s/REGEX/REPLACEMENT`: Replace `REGEX` with `REPLACEMENT` in the range.
 * `c`: Change content in the middle of the line
 * `w[path]`: Write the file, optionally to `[path]`
