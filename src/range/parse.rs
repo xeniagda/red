@@ -15,6 +15,7 @@ pub fn parse_range<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range>
                 alt_complete!(
                     apply!(offset, ctx)
                     | apply!(expand, ctx)
+                    | apply!(intersection, ctx)
                     | apply!(parse_one_range, ctx)
                     )
                 ) >>
@@ -54,7 +55,25 @@ fn invert<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
         tag_s!("!") >>
         range: apply!(parse_range, ctx) >>
         (
-            Range { lines: (0..ctx.lines.len()).collect::<HashSet<_>>().difference(&range.lines).map(|x| x.clone()).collect() }
+            Range {
+                lines: (0..ctx.lines.len()).collect::<HashSet<_>>()
+                    .difference(&range.lines)
+                    .map(|x| x.clone())
+                    .collect()
+            }
+        )
+        )
+}
+
+fn intersection<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
+    do_parse!(
+        inp,
+
+        r1: apply!(parse_one_range, ctx) >>
+        tag_s!("*") >>
+        r2: apply!(parse_one_range, ctx) >>
+        (
+            Range { lines: r1.lines.intersection(&r2.lines).map(|x| x.clone()).collect() }
         )
         )
 }
