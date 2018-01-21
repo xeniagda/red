@@ -17,7 +17,7 @@ use red_buffer::RedBuffer;
 use range::Range;
 
 static SEL_CHARS: &str =
-    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}";
+    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#%&'()*+,-./:<;=@>?[\\]^_`{|}";
 
 #[derive(Debug, Clone)]
 pub enum Action {
@@ -27,6 +27,9 @@ pub enum Action {
     Delete(String),  // Optionally puts into a registers
     Yank(String),
     Paste(String),
+
+    InsertText(String), // Insert text in the beginning of a line
+    AppendText(String), // Append text to the end of a line
 
     Registers(Option<String>), // Show the contets of all or any register
 
@@ -129,7 +132,8 @@ impl Action {
                 'outer: for line in file.cursor.lines.clone().into_iter().sorted() {
                     let content = file.lines[line].clone();
                     let mut sel_chars = SEL_CHARS.to_string();
-                    sel_chars.truncate(content.len() + 2);
+                    sel_chars.truncate(content.len());
+                    sel_chars += "$";
 
                     println!("  {}", content);
                     println!("{}  {}{}", color::Fg(color::Cyan), sel_chars, style::Reset);
@@ -170,6 +174,28 @@ impl Action {
                 }
 
                 true
+            }
+            Action::AppendText(text) => {
+                let file = master.curr_buf_mut();
+
+                for line_nr in &file.cursor.lines {
+                    if let Some(line) = file.lines.get_mut(*line_nr) {
+                        *line = format!("{}{}", line, text);
+                    }
+                }
+
+                file.cursor.lines.len() > 0 && text != ""
+            }
+            Action::InsertText(text) => {
+                let file = master.curr_buf_mut();
+
+                for line_nr in &file.cursor.lines {
+                    if let Some(line) = file.lines.get_mut(*line_nr) {
+                        *line = format!("{}{}", text, line);
+                    }
+                }
+
+                file.cursor.lines.len() > 0 && text != ""
             }
             Action::Yank(reg) => {
                 let lines = {

@@ -20,6 +20,8 @@ pub fn parse_action<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Actio
         flat_map!(tag!("p"), value!(Action::Print)) |
         flat_map!(tag!("P"), value!(Action::Print_)) |
         flat_map!(tag!("bl"), value!(Action::BufList)) |
+        apply!(insert, ctx) |
+        apply!(append, ctx) |
         apply!(regs, ctx) |
         apply!(buf_change, ctx) |
         apply!(buf_new, ctx) |
@@ -28,6 +30,26 @@ pub fn parse_action<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Actio
         apply!(substitute, ctx) |
         apply!(write, ctx) |
         apply!(read, ctx)
+        )
+}
+
+pub fn insert<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
+    do_parse!(
+        inp,
+
+        tag!("I") >>
+        text: is_not_s!("") >>
+        (Action::InsertText(text.into()))
+        )
+}
+
+pub fn append<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
+    do_parse!(
+        inp,
+
+        tag!("A") >>
+        text: is_not_s!("") >>
+        (Action::AppendText(text.into()))
         )
 }
 
