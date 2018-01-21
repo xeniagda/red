@@ -58,7 +58,7 @@ Here's a list of commands:
 * `q`: Quits the current buffer. If this is the last buffer, the entire program quits.
 * `cl`: Clears the screen
 
-More details about each action and range can be found in the [Details.md file][details.md]
+More details about each action and range can be found in the [Details.md file](details.md)
 
 ## Registers
 A register is basically a named clipboard. If no register is specified, the `'` register is defaulted.
