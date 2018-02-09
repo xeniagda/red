@@ -32,8 +32,8 @@ fn main() {
     let mut file = RedMaster::empty();
 
     for arg in args().skip(1) {
-        if let Err(ActionErr::IO) = Action::Edit(true, arg).apply(&mut file) {
-            eprintln!("Couldn't read file!");
+        if let Err(ActionErr::IO(err)) = Action::Edit(true, arg).apply(&mut file) {
+            eprintln!("Couldn't read file! ({:?})", err);
         }
     }
 
@@ -43,6 +43,11 @@ fn main() {
         let line = read_line("");
 
         if let Err(_) = line {
+            let buf = file.curr_buf();
+            if !buf.saved {
+                eprintln!("File not saved! Type q! to force quit.");
+                continue;
+            }
             break;
         }
 
@@ -98,4 +103,3 @@ fn main() {
     }
 
 }
-

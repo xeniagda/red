@@ -54,7 +54,7 @@ pub enum Action {
 pub enum ActionErr {
     OutOfBounds,
     NoRange,
-    IO,
+    IO(io::Error),
     NoSuchRegisters,
     Regex,
     Other,
@@ -282,12 +282,19 @@ impl Action {
                 let file = master.curr_buf_mut();
                 let replacer: &str = &rep;
                 let rpat = Regex::new(&pat)?;
+                let mut count = 0;
+                let mut lines = 0;
                 for i in file.cursor.lines.iter() {
                     let line = file.lines[*i].clone();
+                    let matches_on_line = rpat.find_iter(&line).count();
+                    count += matches_on_line;
+                    lines += if matches_on_line > 0 { 1 } else { 0 };
                     let replaced = rpat.replace_all(&line, replacer).into_owned();
+
                     file.lines[*i] = replaced;
                 }
-                true
+                println!("Did {} replacements on {} lines", count, lines);
+                count > 0
             }
             Action::BufList => {
                 for (i, buf) in master.buffers.iter().enumerate() {
@@ -320,6 +327,12 @@ impl Action {
                 if master.buffers.len() == 1 {
                     exit(0);
                 }
+                if let Some(ref name) = master.curr_buf().filename {
+                    println!("Closing {}", name);
+                } else {
+                    println!("Closing [untitled]");
+                }
+
                 let idx = master.curr_buf_idx().clone();
                 master.buffers.remove(idx);
                 if idx > 0 {
@@ -331,6 +344,9 @@ impl Action {
                 master.buffers.push(RedBuffer::empty());
                 let buffers = master.buffers.len();
                 master.change_buffer(buffers - 1)?;
+
+                println!("Editing new file!");
+
                 false
             }
             Action::BufNew(Some(file_name)) => {
@@ -432,8 +448,8 @@ impl Action {
 }
 
 impl From<io::Error> for ActionErr {
-    fn from(_: io::Error) -> ActionErr {
-        ActionErr::IO
+    fn from(err: io::Error) -> ActionErr {
+        ActionErr::IO(err)
     }
 }
 
