@@ -3,30 +3,45 @@ use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use std::sync::Mutex;
 
+use config;
+
 lazy_static!{
     static ref EDITOR: Mutex<Editor<()>> = Mutex::new(Editor::new());
-    static ref BACKLOG: Mutex<Vec<String>> = Mutex::new(vec![]);
+    static ref BACKLOG: Mutex<Option<Vec<String>>> = Mutex::new(None);
 }
+
 
 pub fn read_line(prompt: &str) -> Result<String, ReadlineError> {
     let mut backlog = BACKLOG.lock().unwrap();
-    if backlog.is_empty() {
-        EDITOR.lock().unwrap().readline(prompt)
-    } else {
-        let line = backlog.remove(0);
-        println!("{}", line);
+    let silent = config::CONF.lock().unwrap().silent;
 
-        Ok(line)
+    if let Some(ref mut backlog) = *backlog {
+        if backlog.is_empty() {
+            Err(ReadlineError::Eof)
+        } else {
+            let line = backlog.remove(0);
+            if !silent {
+                println!("{}", line);
+            }
+
+            Ok(line)
+        }
+    } else {
+        EDITOR.lock().unwrap().readline(prompt)
     }
 
 }
 
 pub fn add_command(cmd: String) {
-    let mut backlog = BACKLOG.lock().unwrap();
-
     let parts = split_escaped(cmd, ';', '\\');
 
-    parts.into_iter().for_each(|part| backlog.push(part));
+    let mut backlog = BACKLOG.lock().unwrap();
+    if backlog.is_none() {
+        *backlog = Some(Vec::new());
+    }
+    if let Some(ref mut bl) = *backlog {
+        bl.extend(parts);
+    }
 }
 
 fn split_escaped(st: String, split: char, escape: char) -> Vec<String> {

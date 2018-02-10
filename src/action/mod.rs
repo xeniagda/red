@@ -15,6 +15,7 @@ use readline::read_line;
 use red_master::RedMaster;
 use red_buffer::RedBuffer;
 use range::Range;
+use config;
 
 static SEL_CHARS: &str =
     "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#%&'()*+,-./:<;=@>?[\\]^_`{|}";
@@ -293,7 +294,9 @@ impl Action {
 
                     file.lines[*i] = replaced;
                 }
-                println!("Did {} replacements on {} lines", count, lines);
+                if !config::CONF.lock().unwrap().silent {
+                    println!("Did {} replacements on {} lines", count, lines);
+                }
                 count > 0
             }
             Action::BufList => {
@@ -345,7 +348,9 @@ impl Action {
                 let buffers = master.buffers.len();
                 master.change_buffer(buffers - 1)?;
 
-                println!("Editing new file!");
+                if !config::CONF.lock().unwrap().silent {
+                    println!("Editing new file!");
+                }
 
                 false
             }
@@ -395,11 +400,15 @@ impl Action {
 
                     file.lines = content.lines().map(|x| x.to_string()).collect();
                     file.cursor = Range::empty();
-                    println!("Editing {} [{}]", path.trim(), file.lines.len());
+                    if !config::CONF.lock().unwrap().silent {
+                        println!("Editing {} [{}]", path.trim(), file.lines.len());
+                    }
                 } else {
                     file.lines = vec![];
                     file.cursor = Range::empty();
-                    println!("Editing {} [NEW]", path.trim());
+                    if !config::CONF.lock().unwrap().silent {
+                        println!("Editing {} [NEW]", path.trim());
+                    }
                 }
                 file.saved = true;
                 file.filename = Some(path.trim().to_string());

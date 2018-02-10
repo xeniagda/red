@@ -15,10 +15,12 @@ mod red_buffer;
 mod action;
 mod red_master;
 mod readline;
+mod config;
 
 use readline::{read_line, add_command};
 
 use std::env::args;
+use std::io::{stdin, Read};
 
 use nom::IResult;
 
@@ -26,7 +28,9 @@ use range::parse::parse_range;
 use action::parse::parse_action;
 use action::Action;
 use action::ActionErr;
+use red_buffer::RedBuffer;
 use red_master::RedMaster;
+use range::Range;
 
 fn main() {
     let mut file = RedMaster::empty();
@@ -34,12 +38,28 @@ fn main() {
     let mut args = args().skip(1); // Remove file path
 
     while let Some(arg) = args.next() {
-        if arg == "--" {
+        if arg == "-s" {
+            config::CONF.lock().unwrap().silent = true;
+        } else if arg == "-d" {
             if let Some(command_to_exec) = args.next() {
                 add_command(command_to_exec);
             }
-        }
+        } else if arg == "--" {
+            // Read buffer from STDIN
+            let mut data = String::new();
+            if let Err(e) = stdin().read_to_string(&mut data) {
+                eprintln!("Couldn't read from STDIN: {:?}", e);
+            }
 
+            let mut buf = RedBuffer::empty();
+            buf.lines = data.lines().map(|x| x.to_string()).collect();
+            buf.cursor = Range::empty();
+            if !config::CONF.lock().unwrap().silent {
+                println!("Editing [STDIN] [{}]", buf.lines.len());
+            }
+
+            file.buffers = vec![buf];
+        }
         else if let Err(ActionErr::IO(err)) = Action::Edit(true, arg).apply(&mut file) {
             eprintln!("Couldn't read file! ({:?})", err);
         }
@@ -47,17 +67,29 @@ fn main() {
 
     let mut last_line = "".to_string();
 
+    let mut quitting = false;
+
     loop {
         let line = read_line("");
 
         if let Err(_) = line {
+            if config::CONF.lock().unwrap().silent {
+                break;
+            }
             let buf = file.curr_buf();
             if !buf.saved {
+                if quitting {
+                    eprintln!("STDIN borked. Quitting");
+                    break;
+                }
                 eprintln!("File not saved! Type q! to force quit.");
+                quitting = true;
                 continue;
             }
             break;
         }
+
+        quitting = false;
 
         let mut line = line.unwrap();
 

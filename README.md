@@ -72,3 +72,14 @@ In `red`, you can have many files open at once, called buffers. The commands `bl
 ## Examples and useful stuff:
 * `%p`: Print the entire buffer, with line numbers.
 * `0#10+$-10p`: Print the first and last 10 lines in the buffer, with line numbers.
+
+
+# Command line arguments
+
+`red` supports a few flags:
+
+* `-s`: Turn on silent mode. This makes many commands not show any information unless crutial. For example, `e` usually shows the text "Editing ...", but this is suppressed with `-s`.
+* `-d <commands>`: Using this flag you can supply commands to execute from the command line. `<commands>` is separated by semicolons (`;`), which can be escaped with `\`.
+When using this, `red` won't read any input from STDIN and will discard the buffer when there are no commands left.
+* `--`: Read the buffer from STDIN. This can be usefull when processing output from other utilities in the command line, combined with `-d`. This flag on it's own is not very useful as you
+can't enter any commands with it.
