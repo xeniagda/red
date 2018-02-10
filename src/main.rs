@@ -16,7 +16,7 @@ mod action;
 mod red_master;
 mod readline;
 
-use readline::read_line;
+use readline::{read_line, add_command};
 
 use std::env::args;
 
@@ -31,8 +31,16 @@ use red_master::RedMaster;
 fn main() {
     let mut file = RedMaster::empty();
 
-    for arg in args().skip(1) {
-        if let Err(ActionErr::IO(err)) = Action::Edit(true, arg).apply(&mut file) {
+    let mut args = args().skip(1); // Remove file path
+
+    while let Some(arg) = args.next() {
+        if arg == "--" {
+            if let Some(command_to_exec) = args.next() {
+                add_command(command_to_exec);
+            }
+        }
+
+        else if let Err(ActionErr::IO(err)) = Action::Edit(true, arg).apply(&mut file) {
             eprintln!("Couldn't read file! ({:?})", err);
         }
     }
