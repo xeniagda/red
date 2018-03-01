@@ -38,7 +38,10 @@ fn main() {
     let mut args = args().skip(1); // Remove file path
 
     while let Some(arg) = args.next() {
-        if arg == "-s" {
+        if arg == "-h" {
+            println!("{}", include_str!("help.txt"));
+            return;
+        } else if arg == "-s" {
             config::CONF.lock().unwrap().silent = true;
         } else if arg == "-d" {
             if let Some(command_to_exec) = args.next() {
@@ -59,8 +62,7 @@ fn main() {
             }
 
             file.buffers = vec![buf];
-        }
-        else if let Err(ActionErr::IO(err)) = Action::Edit(true, arg).apply(&mut file) {
+        } else if let Err(ActionErr::IO(err)) = Action::Edit(true, arg).apply(&mut file) {
             eprintln!("Couldn't read file! ({:?})", err);
         }
     }

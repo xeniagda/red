@@ -1,0 +1,11 @@
+Usage: red [-d <command>] [-s] [file/--]
+
+A simple line-based file editor
+
+Options:
+    -d <command>: Instead of reading commands from STDIN, use these commands instead. Commands are separated by `;`
+                  which can be escaped with `\`.
+
+    -s:           Silent mode, makes commands not show any information beyond it's purpose. For example, `s/x/y/` will
+                  usually show a message telling you how many replacements were made, but won't with `-s`. Commands like
+                  `p` will show output as that is its only purpose. This command is useful in combination with `-d`.
