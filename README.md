@@ -71,7 +71,7 @@ In `red`, you can have many files open at once, called buffers. The commands `bl
 
 ## Examples and useful stuff:
 * `%p`: Print the entire buffer, with line numbers.
-* `0#10+$-10p`: Print the first and last 10 lines in the buffer, with line numbers.
+* `0#10+$#-10p`: Print the first and last 10 lines in the buffer, with line numbers.
 
 
 # Command line arguments
