@@ -32,6 +32,7 @@ A range can be made using the following commands:
 * `x##n`: Expand the range `x` by `n` lines, upwards and downwards. Same as `(x#n)#-n`.
 * `x^n`: The range `x`, shifted `n` lines down. (`n` can be negative).
 * `!x`: Invert `x`, all the lines not in `x`.
+* `'a`: Range in mark `a`
 
 If no range is entered, the last range is used.
 
@@ -49,6 +50,7 @@ Here's a list of commands:
 * `I<text>`: Insert `<text>` in the beginnig of every line in the range.
 * `s/REGEX/REPLACEMENT`: Replace `REGEX` with `REPLACEMENT` in the range.
 * `c`: Change content in the middle of the line.
+* `mA`: Save the current selection into mark `A`
 * `w[path]`: Write the file, optionally to `[path]`.
 * `e<path>`: Edit that file.
 * `d[reg]`: Delete all the lines in that range, storing them in that register.
@@ -65,6 +67,9 @@ More details about each action and range can be found in the [Details.md file](d
 
 ## Registers
 A register is basically a named clipboard. If no register is specified, the `'` register is defaulted.
+
+## Marks
+A mark is a saved range. They are dynamically updated so that they refer to the correct locations after adding/removing lines
 
 ## Buffers
 In `red`, you can have many files open at once, called buffers. The commands `bl`, `bn`, `bc` and `q` are used to manage buffers.
