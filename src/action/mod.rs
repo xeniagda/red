@@ -32,6 +32,9 @@ pub enum Action {
     InsertText(String), // Insert text in the beginning of a line
     AppendText(String), // Append text to the end of a line
 
+    Indent,
+    Unindent,
+
     Registers(Option<String>), // Show the contets of all or any register
 
     Clear, // Clear the screen
@@ -109,6 +112,32 @@ impl Action {
                 }
 
                 modified
+            }
+            Action::Indent => {
+                let mut file = master.curr_buf_mut();
+                for line in file.cursor.lines.clone() {
+                    if let Some(ref mut li) = file.lines.get_mut(line) {
+                        li.insert_str(0, "    ");
+                    } else {
+                        return Err(ActionErr::OutOfBounds);
+                    }
+                }
+                !file.cursor.lines.is_empty()
+            }
+            Action::Unindent => {
+                let mut file = master.curr_buf_mut();
+                for line in file.cursor.lines.clone() {
+                    if let Some(ref mut li) = file.lines.get_mut(line) {
+                        for _ in 0..4 {
+                            if Some(' ') == li.chars().nth(0) {
+                                li.remove(0);
+                            }
+                        }
+                    } else {
+                        return Err(ActionErr::OutOfBounds);
+                    }
+                }
+                !file.cursor.lines.is_empty()
             }
             Action::Append => {
                 let file = master.curr_buf_mut();

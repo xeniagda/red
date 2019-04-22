@@ -20,6 +20,8 @@ pub fn parse_action<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Actio
         flat_map!(tag!("p"), value!(Action::Print)) |
         flat_map!(tag!("P"), value!(Action::Print_)) |
         flat_map!(tag!("bl"), value!(Action::BufList)) |
+        flat_map!(tag!(">"), value!(Action::Indent)) |
+        flat_map!(tag!("<"), value!(Action::Unindent)) |
         apply!(insert, ctx) |
         apply!(append, ctx) |
         apply!(regs, ctx) |
