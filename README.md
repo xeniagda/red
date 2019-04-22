@@ -44,6 +44,8 @@ Here's a list of commands:
 * `p`: Print the range with numbers.
 * `P`: Print the range without numbers.
 * `i`: Insert text before the range.
+* `>`: Indent all lines in the range with four spaces
+* `<`: Remove four spaces of indentation for all lines in range
 * `a`: Append text after the range. End the insertion with a single period (`.`).
 * `t<range>`: Copies the text in the current range to the specified location.
 * `A<text>`: Append `<text>` to every line in the range.
