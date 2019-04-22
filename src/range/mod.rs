@@ -32,4 +32,11 @@ impl Range {
         }
         Range { lines: res_lines }
     }
+    pub fn removed_line(self, at: usize) -> Range {
+        let res_lines: HashSet<usize> =
+                self.lines.iter()
+                    .map(|&l| if l >= at { l - 1 } else { l })
+                    .collect();
+        Range { lines: res_lines }
+    }
 }

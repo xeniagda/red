@@ -36,6 +36,16 @@ impl RedBuffer {
         self.saved = false;
         Ok(())
     }
+    pub fn delete_line(&mut self, at: usize) -> Result<(), ActionErr>{
+        if at > self.lines.len() {
+            return Err(ActionErr::OutOfBounds);
+        }
+        self.lines.remove(at);
+        self.cursor = self.clone().cursor.removed_line(at);
+        self.marks = self.marks.clone().into_iter().map(|(m, r)| (m, r.removed_line(at))).collect();
+        self.saved = false;
+        Ok(())
+    }
     pub fn empty() -> RedBuffer {
         RedBuffer {
             lines: vec![ "".into() ],

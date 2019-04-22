@@ -123,7 +123,7 @@ fn main() {
 
         while line.trim().len() > 0 {
             let lineclone = line.clone();
-            let action = parse_action(&lineclone, &file.curr_buf());
+            let action = parse_action(&lineclone.trim(), &file.curr_buf());
 
             match action {
                 IResult::Done(rest, action) => {

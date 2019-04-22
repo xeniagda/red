@@ -68,17 +68,19 @@ impl Action {
         let modified = match self {
             Action::Delete(reg) => {
                 let removed_lines = {
-                    let file = master.curr_buf_mut();
+                    let mut file = master.curr_buf_mut();
 
                     let removed_lines: Vec<_> = file.lines.clone().into_iter()
                         .enumerate()
                         .filter_map(|(i, line)| if file.cursor.lines.contains(&i) { Some(line) } else { None })
                         .collect();
 
-                    file.lines = file.clone().lines.into_iter()
-                        .enumerate()
-                        .filter_map(|(i, line)| if !file.cursor.lines.contains(&i) { Some(line) } else { None })
-                        .collect();
+                    let mut lines: Vec<usize> = file.cursor.lines.clone().into_iter().collect();
+                    lines.sort_by(|x, y| y.cmp(x));
+
+                    for line in lines {
+                        file.delete_line(line)?;
+                    }
 
                     removed_lines
                 };
