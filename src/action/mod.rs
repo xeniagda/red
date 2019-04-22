@@ -39,6 +39,8 @@ pub enum Action {
     CopyTo(Range),   // Copy a range from one place to another
     Substitute(String, String), // Substitute a by b
 
+    SetMark(String),
+
     Print,   // Print a range with line number
     Print_,   // Print a line
 
@@ -298,6 +300,11 @@ impl Action {
                     println!("Did {} replacements on {} lines", count, lines);
                 }
                 count > 0
+            }
+            Action::SetMark(mark) => {
+                let file = master.curr_buf_mut();
+                file.marks.insert(mark.into(), file.cursor.clone());
+                true
             }
             Action::BufList => {
                 for (i, buf) in master.buffers.iter().enumerate() {

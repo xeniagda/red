@@ -16,6 +16,7 @@ pub fn parse_range<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range>
                     apply!(offset, ctx)
                     | apply!(expand, ctx)
                     | apply!(intersection, ctx)
+                    | apply!(mark, ctx)
                     | apply!(parse_one_range, ctx)
                     )
                 ) >>
@@ -44,6 +45,7 @@ fn parse_one_range<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range>
         | apply!(invert, ctx)
         | apply!(line_range, ctx)
         | apply!(special, ctx)
+        | apply!(mark, ctx)
         | delimited!(tag_s!("("), apply!(parse_range, ctx), tag_s!(")"))
         )
 }
@@ -242,6 +244,21 @@ fn search<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
                 }
             }
             Range { lines: matching }
+        })
+        )
+}
+fn mark<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
+    do_parse!(
+        inp,
+
+        tag_s!("'") >>
+        mark: is_not_s!(" ") >>
+        ({
+            if let Some(r) = ctx.marks.get(&String::from(mark).into()) {
+                r.clone()
+            } else {
+                Range { lines: HashSet::new() }
+            }
         })
         )
 }

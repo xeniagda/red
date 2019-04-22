@@ -23,6 +23,7 @@ pub fn parse_action<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Actio
         apply!(insert, ctx) |
         apply!(append, ctx) |
         apply!(regs, ctx) |
+        apply!(set_mark, ctx) |
         apply!(buf_change, ctx) |
         apply!(buf_new, ctx) |
         apply!(buf_del, ctx) |
@@ -80,6 +81,16 @@ pub fn paste<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
         tag!("pa") >>
         register: is_not_s!(" ") >>
         (Action::Paste(register.into()))
+        )
+}
+
+pub fn set_mark<'a>(inp: &'a str, _ctx: &RedBuffer) -> IResult<&'a str, Action> {
+    do_parse!(
+        inp,
+
+        tag!("m") >>
+        mark: is_not_s!(" ") >>
+        (Action::SetMark(mark.into()))
         )
 }
 

@@ -22,4 +22,14 @@ impl Range {
                 .collect();
         Range { lines: lines }
     }
+    pub fn inserted_line(self, at: usize) -> Range {
+        let mut res_lines: HashSet<usize> =
+                self.lines.iter()
+                    .map(|&l| if l >= at { l + 1 } else { l })
+                    .collect();
+        if self.lines.contains(&at) {
+            res_lines.insert(at);
+        }
+        Range { lines: res_lines }
+    }
 }
