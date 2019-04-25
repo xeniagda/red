@@ -1,6 +1,7 @@
 pub mod parse;
 
 use std::collections::HashSet;
+use red_buffer::RedBuffer;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Range {
@@ -38,5 +39,32 @@ impl Range {
                     .map(|&l| if l >= at { l - 1 } else { l })
                     .collect();
         Range { lines: res_lines }
+    }
+    pub fn into_block(self, ctx: &RedBuffer) -> Range {
+        Range { lines: self.lines.into_iter().flat_map(|l| line_to_block(l, ctx)).collect() }
+    }
+}
+
+fn line_to_block(line: usize, ctx: &RedBuffer) -> Vec<usize> {
+    if let Some(depth) = ctx.lines.get(line).and_then(|c| get_depth(c)) {
+        let mut last = line + 1;
+        while last < ctx.lines.len() {
+            match get_depth(ctx.lines.get(last).unwrap()) {
+                Some(d) if d <= depth => { break }
+                _ => { }
+            }
+            last += 1;
+        }
+        return (line..=last).collect();
+    } else {
+        return vec![];
+    }
+}
+
+fn get_depth(line: &str) -> Option<usize> {
+    if line.trim().is_empty() {
+        None
+    } else {
+        line.find(|x| x != ' ')
     }
 }

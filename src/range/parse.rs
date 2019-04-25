@@ -14,6 +14,7 @@ pub fn parse_range<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range>
                 tag!("+"),
                 alt_complete!(
                     apply!(offset, ctx)
+                    | apply!(block, ctx)
                     | apply!(expand, ctx)
                     | apply!(intersection, ctx)
                     | apply!(mark, ctx)
@@ -259,6 +260,18 @@ fn mark<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
             } else {
                 Range { lines: HashSet::new() }
             }
+        })
+        )
+}
+
+fn block<'a>(inp: &'a str, ctx: &RedBuffer) -> IResult<&'a str, Range> {
+    do_parse!(
+        inp,
+
+        range: apply!(parse_one_range, ctx) >>
+        tag!("&") >>
+        ({
+            range.into_block(ctx)
         })
         )
 }
