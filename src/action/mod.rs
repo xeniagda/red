@@ -257,7 +257,7 @@ impl Action {
 
                     for (i, line) in lines_to_paste.into_iter().enumerate() {
                         if let Some(location) = lines_locations.get(i) {
-                            file.lines.insert(*location, line.clone());
+                            file.insert_line(*location, line.clone())?;
                             last_line = Some(*location);
                         } else if let Some(location) = last_line {
                             file.lines.insert(location + 1, line.clone());
