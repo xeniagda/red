@@ -33,6 +33,7 @@ A range can be made using the following commands:
 * `x^n`: The range `x`, shifted `n` lines down. (`n` can be negative).
 * `!x`: Invert `x`, all the lines not in `x`.
 * `'a`: Range in mark `a`
+* `x&`: Select everything after `x` with indentation greater than it. Useful for selecting blocks of code.
 
 If no range is entered, the last range is used.
 
