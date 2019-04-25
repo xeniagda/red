@@ -44,7 +44,7 @@ fn main() {
         } else if arg == "-s" {
             config::CONF.lock().unwrap().silent = true;
         } else if arg == "-d" {
-            if let Some(command_to_exec) = args.next() {
+            while let Some(command_to_exec) = args.next() {
                 add_command(command_to_exec);
             }
         } else if arg == "--" {
